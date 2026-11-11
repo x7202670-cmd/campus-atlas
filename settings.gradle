@@ -1,0 +1,10 @@
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+dependencyResolutionManagement.repositories.maven { url 'https://jitpack.io'; content { includeGroup 'com.github.tiann' } }
+rootProject.name = 'CampusAtlas'
+include ':app', ':core'
+include ':location-probe'
+include ':Bcore', ':black-reflection', ':compiler'
+project(':Bcore').projectDir = file('vendor/blackbox/Bcore')
+project(':black-reflection').projectDir = file('vendor/blackbox/black-reflection')
+project(':compiler').projectDir = file('vendor/blackbox/compiler')

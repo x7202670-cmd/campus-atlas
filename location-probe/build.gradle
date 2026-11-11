@@ -1,0 +1,16 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'dev.campus.atlas.probe'
+    buildFeatures { buildConfig true }
+    compileSdk 35
+    defaultConfig {
+        applicationId 'dev.campus.atlas.probe'
+        minSdk 26
+        targetSdk 35
+        versionCode 9
+        versionName '1.8-io-create-checks'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    // Native diagnostics are opt-in debug artifacts, compiled by build-io-probe.ps1.
+    sourceSets.debug.jniLibs.srcDir(layout.buildDirectory.dir('ioProbe/jniLibs'))
+}

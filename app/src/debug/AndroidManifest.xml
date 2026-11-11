@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries><package android:name="dev.campus.atlas.probe" /></queries>
+    <instrumentation
+        android:name="dev.campus.atlas.ContainerLaunchDiagnostics"
+        android:targetPackage="dev.campus.atlas"
+        android:handleProfiling="false"
+        android:functionalTest="true" />
+    <instrumentation android:name="dev.campus.atlas.TimetableOcrDiagnostics"
+        android:targetPackage="dev.campus.atlas" android:functionalTest="true" />
+    <instrumentation android:name="dev.campus.atlas.SpaceLayoutDiagnostics"
+        android:targetPackage="dev.campus.atlas" android:functionalTest="true" />
+</manifest>

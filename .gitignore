@@ -1,0 +1,13 @@
+.gradle/
+**/build/
+**/.cxx/
+.idea/
+local.properties
+*.jks
+*.keystore
+!keystore/campus-atlas-oss-release.jks
+*.apk
+*.aab
+*.log
+dist/
+.robolectric-cache/

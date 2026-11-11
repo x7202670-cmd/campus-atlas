@@ -1,0 +1,126 @@
+plugins { id 'com.android.application' }
+
+def localConfig = new Properties()
+def localConfigFile = rootProject.file('local.properties')
+if (localConfigFile.exists()) {
+    localConfigFile.withInputStream { localConfig.load(it) }
+}
+def amapApiKey = (providers.gradleProperty('AMAP_API_KEY').orNull
+        ?: System.getenv('AMAP_API_KEY')
+        ?: localConfig.getProperty('AMAP_API_KEY', '')).trim()
+
+def releaseKeystore = rootProject.file('keystore/campus-atlas-oss-release.jks')
+
+android {
+    namespace 'dev.campus.atlas'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'dev.campus.atlas.oss'
+        minSdk 26
+        targetSdk 35
+        testInstrumentationRunner 'dev.campus.atlas.StabilityInstrumentation'
+        versionCode 100
+        versionName '1.0.0'
+        ndk { abiFilters 'arm64-v8a' }
+        manifestPlaceholders = [AMAP_API_KEY: amapApiKey, appLabel: '行迹·开源版']
+    }
+    signingConfigs {
+        release {
+            if (releaseKeystore.exists()) {
+                storeFile releaseKeystore
+                storePassword(System.getenv('ATLAS_KEYSTORE_PASSWORD') ?: 'campusatlasoss')
+                keyAlias(System.getenv('ATLAS_KEY_ALIAS') ?: 'campusatlas')
+                keyPassword(System.getenv('ATLAS_KEY_PASSWORD') ?: 'campusatlasoss')
+                v1SigningEnabled true
+                v2SigningEnabled true
+                enableV3Signing = true
+            }
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes {
+        release {
+            minifyEnabled false
+            debuggable false
+            if (releaseKeystore.exists()) {
+                signingConfig signingConfigs.release
+            }
+            manifestPlaceholders = [appLabel: '行迹·开源版']
+        }
+        uiPreview {
+            initWith debug
+            applicationIdSuffix '.uipreview'
+            versionNameSuffix '-ui-preview'
+            manifestPlaceholders = [appLabel: '行迹空间·预览']
+            matchingFallbacks = ['debug']
+        }
+        compat {
+            initWith debug
+            debuggable false
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['debug']
+        }
+    }
+    // Retain the opt-in, same-package startup driver for the runtime flag comparison.
+    // Normal release builds do not include this diagnostic source set or manifest.
+    sourceSets {
+        compat {
+            java.srcDir 'src/debug/java'
+            manifest.srcFile 'src/debug/AndroidManifest.xml'
+        }
+    }
+    packaging {
+        resources {
+            excludes += [
+                'META-INF/*.version',
+                'META-INF/version-control-info.textproto'
+            ]
+        }
+    }
+    testOptions { unitTests.includeAndroidResources = true }
+}
+dependencies {
+    implementation project(':Bcore')
+    implementation(project(':core')) {
+        attributes { attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR)) }
+    }
+    implementation 'com.amap.api:3dmap-location-search:10.1.200_loc6.4.9_sea9.7.4'
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16'
+}
+
+tasks.withType(Test).configureEach {
+    systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+    systemProperty 'maven.repo.local', System.getenv('ATLAS_ROBOLECTRIC_CACHE') ?: rootProject.file('.robolectric-cache').absolutePath
+    ['https.proxyHost','https.proxyPort','http.proxyHost','http.proxyPort'].each { key ->
+        if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+    }
+}
+
+// The upstream tree references assets/empty.jar but does not ship that asset.
+// Build a small, valid DEX container from our own inert class instead of a binary download.
+def seedClasses = layout.buildDirectory.dir('containerSeed/classes')
+def seedAssets = layout.buildDirectory.dir('generated/containerAssets')
+def compileSeed = tasks.register('compileContainerSeed', JavaCompile) {
+    source = fileTree('src/containerSeed/java') { include '**/*.java' }
+    classpath = files()
+    destinationDirectory = seedClasses
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    options.encoding = 'UTF-8'
+}
+def generateSeed = tasks.register('generateContainerSeedDex', JavaExec) {
+    dependsOn compileSeed
+    inputs.dir seedClasses
+    outputs.file seedAssets.map { it.file('empty.jar') }
+    classpath = files(new File(android.sdkDirectory, 'build-tools/35.0.0/lib/d8.jar'))
+    mainClass = 'com.android.tools.r8.D8'
+    doFirst {
+        seedAssets.get().asFile.mkdirs()
+        args = ['--min-api', '26', '--output', seedAssets.get().file('empty.jar').asFile.absolutePath,
+                seedClasses.get().file('dev/campus/atlas/seed/Empty.class').asFile.absolutePath]
+    }
+}
+android.sourceSets.main.assets.srcDir(seedAssets)
+tasks.named('preBuild').configure { dependsOn generateSeed }
