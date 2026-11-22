@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 #include <string>
+#include <unistd.h>
 
 using Open = int (*)(const char *, int, ...);
 using OpenAt = int (*)(int, const char *, int, ...);
@@ -51,6 +52,17 @@ void FileSystemHook::init() {
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
+
+    // The bundled ARM64 Dobby can write a 16-byte trampoline but only
+    // prepares the first page. Leave unsafe optional hooks uninstalled.
+    constexpr uintptr_t trampolineSize = 16;
+    const long pageSize = sysconf(_SC_PAGESIZE);
+    if (pageSize < static_cast<long>(trampolineSize)) {
+        ALOGE("Native open redirect: invalid system page size");
+        return;
+    }
+    const auto pageBytes = static_cast<uintptr_t>(pageSize);
+
     void *libc = xdl_open("libc.so", XDL_DEFAULT);
     if (libc == nullptr) { ALOGE("Native open redirect: libc unavailable"); return; }
     struct Entry { const char *name; void *replacement; void **original; };
@@ -68,6 +80,11 @@ void FileSystemHook::init() {
         bool alias = false;
         for (unsigned i = 0; i < count; ++i) if (installed[i] == target) alias = true;
         if (alias) { ALOGD("Native open redirect: %s shares an installed entry", entry.name); continue; }
+        const auto pageOffset = reinterpret_cast<uintptr_t>(target) % pageBytes;
+        if (pageOffset > pageBytes - trampolineSize) {
+            ALOGD("Native open redirect: %s skipped at a page boundary", entry.name);
+            continue;
+        }
         const int result = DobbyHook(target, entry.replacement, entry.original);
         ALOGD("Native open redirect: %s installation result=%d", entry.name, result);
         if (result == 0) installed[count++] = target;
