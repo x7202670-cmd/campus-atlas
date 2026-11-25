@@ -42,15 +42,22 @@
 
 ### 高德地图 Key 配置
 
-出于商业合规与安全考虑，本代码仓库**不包含任何私有 API Key**。在构建运行前，请按以下步骤配置您自己的高德开放平台密钥：
+地图和地点搜索需要高德 Android SDK Key。请在 [高德开放平台控制台](https://console.amap.com/) 创建应用并添加 **Android 平台 SDK** Key，填写安装包的包名和签名证书 SHA-1；具体步骤可参考[高德获取 Key 指南](https://lbs.amap.com/api/android-sdk/guide/create-project/get-key)。
 
-1. 登录 [高德开放平台控制台](https://console.amap.com/)，创建 Android 应用凭证；
-2. 绑定包名 `dev.campus.atlas` 及您本地构建签名的 SHA-1 指纹；
-3. 将根目录下的 `local.properties.example` 复制为 `local.properties`，并填入您的 Key：
-   ```properties
-   AMAP_API_KEY=您的高德地图Android_Key
-   ```
-   *(注：`local.properties` 已受 `.gitignore` 保护，切勿提交至版本控制系统)*
+使用本项目提供的开源版 1.0.1 或 `0.7.23-oss-test` 测试包时，填写：
+
+- 包名：`dev.campus.atlas.oss`
+- 签名 SHA-1：`E7:EA:23:7B:CA:7A:18:40:09:04:C8:14:F3:EB:8C:1B:45:60:17:F4`
+
+**已安装应用**：打开「定位」页，点击「配置高德 Key」，粘贴申请的 Key 并保存；然后阅读并同意地图隐私说明。Key 保存在应用的本机私有存储中，不需要修改安装包。使用有效 Key 前，仍可手动输入坐标，但无法使用高德地图底图和地点搜索。
+
+**自行编译源码**：以实际构建的 `applicationId` 和签名证书 SHA-1 为准；使用自己的签名时不要直接使用上方指纹。可将项目根目录下的 `local.properties.example` 复制为 `local.properties`，填写：
+
+```properties
+AMAP_API_KEY=您的高德地图Android_Key
+```
+
+也可以通过 `AMAP_API_KEY` 环境变量或 Gradle 属性配置。`local.properties` 不应提交到版本控制；构建时配置的 Key 会进入 APK，应在高德控制台限制其使用范围。自行编译的安装包若未配置内置 Key，也可在应用内填写。
 
 ### 编译指令
 
