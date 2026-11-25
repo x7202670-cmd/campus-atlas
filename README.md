@@ -44,7 +44,7 @@
 
 地图和地点搜索需要高德 Android SDK Key。请在 [高德开放平台控制台](https://console.amap.com/) 创建应用并添加 **Android 平台 SDK** Key，填写安装包的包名和签名证书 SHA-1；具体步骤可参考[高德获取 Key 指南](https://lbs.amap.com/api/android-sdk/guide/create-project/get-key)。
 
-使用本项目提供的开源版 1.0.1 或 `0.7.23-oss-test` 测试包时，填写：
+使用本项目提供的 1.0.0 开源版安装包或 2.0.0 开发版安装包时，填写：
 
 - 包名：`dev.campus.atlas.oss`
 - 签名 SHA-1：`E7:EA:23:7B:CA:7A:18:40:09:04:C8:14:F3:EB:8C:1B:45:60:17:F4`
